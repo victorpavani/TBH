@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TBH Tracker — Baús Azuis</title>
+<style>
+  :root {
+    --gold:      #f5c542;
+    --green:     #4ade80;
+    --blue:      #7dd3fc;
+    --red:       #f87171;
+    --text:      #f0e6ff;
+    --muted:     rgba(240,230,255,0.45);
+    --radius:    16px;
+    --glass-bg:  rgba(255,255,255,0.07);
+    --glass-border: rgba(255,255,255,0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .hidden { display: none !important; }
+
+  body {
+    background: #0e0614;
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    padding: 0 0 80px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(120,40,200,0.55) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 85% 0%,  rgba(220,60,160,0.45) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 70% at 50% 100%,rgba(90,20,160,0.4)  0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 100% 60%,rgba(200,50,130,0.3) 0%, transparent 50%),
+      #0e0614;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  header, main { position: relative; z-index: 1; }
+
+  /* ── HEADER ── */
+  header {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .chest-icon { font-size: 22px; }
+  header h1 {
+    font-size: 17px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #e8aaff, #ff7ecf);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: .3px;
+  }
+  header .subtitle { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  header .spacer { flex: 1; }
+  .stat-pill {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(10px);
+  }
+  .stat-pill span { color: var(--text); font-weight: 700; }
+
+  main { max-width: 700px; margin: 0 auto; padding: 24px 16px; }
+
+  /* ── NOTICE ── */
+  .notice {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--muted);
+    padding: 11px 16px;
+    margin-bottom: 22px;
+    line-height: 1.7;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ── SETTINGS ── */
+  .settings-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .settings-row label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .settings-row input[type=range] { accent-color: #c084fc; width: 90px; cursor: pointer; }
+  .vol-val { font-size: 12px; color: var(--text); width: 30px; }
+  .btn-test {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 4px 10px;
+    transition: color .15s;
+  }
+  .btn-test:hover { color: var(--text); }
+
+  .toggle-switch { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    width: 13px; height: 13px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform .2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: #a855f7; }
+  .toggle-switch input:checked + .toggle-track::after { transform: translateX(15px); }
+
+  /* ── FILTERS / TABS ── */
+  .filters { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 18px; }
+  .filter-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 15px;
+    transition: all .2s;
+    backdrop-filter: blur(8px);
+  }
+  .filter-btn:hover { border-color: rgba(200,130,255,0.5); color: var(--text); }
+  .filter-btn.active {
+    background: rgba(168,85,247,0.25);
+    border-color: rgba(192,132,252,0.6);
+    color: #e9d5ff;
+    font-weight: 600;
+  }
+  /* Minha Rota tab special style */
+  .filter-btn[data-filter="minha-rota"] {
+    background: rgba(245,197,66,0.1);
+    border-color: rgba(245,197,66,0.3);
+    color: #fde68a;
+  }
+  .filter-btn[data-filter="minha-rota"]:hover {
+    background: rgba(245,197,66,0.2);
+    border-color: rgba(245,197,66,0.5);
+    color: #fef3c7;
+  }
+  .filter-btn[data-filter="minha-rota"].active {
+    background: rgba(245,197,66,0.25);
+    border-color: rgba(245,197,66,0.7);
+    color: #fef3c7;
+    font-weight: 600;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 22px 0 10px;
+    padding-left: 2px;
+  }
+
+  /* ── CHEST CARD — LIQUID GLASS ── */
+  .chest-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    transition: border-color .2s, box-shadow .2s, transform .15s;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12);
+    position: relative;
+  }
+  .chest-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    pointer-events: none;
+  }
+  .chest-card:hover {
+    border-color: rgba(255,255,255,0.28);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+  }
+  .chest-card.ready {
+    border-color: rgba(74,222,128,0.5);
+    background: rgba(74,222,128,0.08);
+    box-shadow: 0 4px 24px rgba(74,222,128,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .chest-card.active {
+    border-color: rgba(125,211,252,0.5);
+    background: rgba(125,211,252,0.06);
+    box-shadow: 0 4px 24px rgba(125,211,252,0.12), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .chest-card.hidden { display: none; }
+
+  .card-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    width: 100%;
+  }
+
+  /* ── ADD/REMOVE ROUTE BUTTONS ── */
+  .route-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    transition: all .2s;
+    user-select: none;
+  }
+  /* + button */
+  .route-btn.add {
+    background: rgba(245,197,66,0.12);
+    border: 1.5px solid rgba(245,197,66,0.35);
+    color: #fde68a;
+  }
+  .route-btn.add:hover {
+    background: rgba(245,197,66,0.28);
+    border-color: #f5c542;
+    box-shadow: 0 0 12px rgba(245,197,66,0.3);
+    transform: scale(1.1);
+  }
+  /* X button */
+  .route-btn.remove {
+    background: rgba(248,113,113,0.12);
+    border: 1.5px solid rgba(248,113,113,0.35);
+    color: #fca5a5;
+    font-size: 14px;
+  }
+  .route-btn.remove:hover {
+    background: rgba(248,113,113,0.28);
+    border-color: #f87171;
+    box-shadow: 0 0 12px rgba(248,113,113,0.3);
+    transform: scale(1.1);
+  }
+
+  /* ── CHEST INFO ── */
+  .chest-info { flex: 1; min-width: 0; }
+  .chest-name {
+    font-weight: 700;
+    font-size: 16px; /* increased */
+    color: #ffffff;
+    letter-spacing: .2px;
+  }
+  .chest-meta { display: flex; gap: 7px; margin-top: 5px; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-weight: 600;
+    letter-spacing: .2px;
+  }
+  .badge-diff-normal   { background: rgba(74,222,128,0.15); color: #86efac; border: 1px solid rgba(74,222,128,0.25); }
+  .badge-diff-pesadelo { background: rgba(248,113,113,0.15); color: #fca5a5; border: 1px solid rgba(248,113,113,0.25); }
+  .badge-diff-inferno  { background: rgba(251,146,60,0.15);  color: #fdba74; border: 1px solid rgba(251,146,60,0.25); }
+  .badge-diff-tormento { background: rgba(192,132,252,0.15); color: #d8b4fe; border: 1px solid rgba(192,132,252,0.25); }
+  .badge-lv { background: rgba(255,255,255,0.07); color: var(--muted); border: 1px solid rgba(255,255,255,0.1); }
+
+  /* ── TIMER DIVIDER ── */
+  .timer-divider {
+    width: 1px;
+    align-self: stretch;
+    background: linear-gradient(180deg, transparent, rgba(255,255,255,0.15), transparent);
+    flex-shrink: 0;
+  }
+
+  /* ── TIMER AREA ── */
+  .timer-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 14px 18px;
+    flex-shrink: 0;
+    min-width: 130px;
+  }
+  .timer-display {
+    font-size: 26px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.55); /* white-ish when idle */
+    transition: color .3s, text-shadow .3s;
+  }
+  .timer-display.running {
+    color: #ffffff;
+    text-shadow: 0 0 18px rgba(125,211,252,0.6);
+  }
+
+  /* ── DROPOU BUTTON — GOLD ── */
+  .drop-btn {
+    background: linear-gradient(135deg, rgba(245,197,66,0.25), rgba(240,154,26,0.2));
+    border: 1px solid rgba(245,197,66,0.55);
+    border-radius: 9px;
+    color: #fde68a;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    padding: 6px 14px;
+    transition: all .2s;
+    white-space: nowrap;
+    box-shadow: 0 0 12px rgba(245,197,66,0.15), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .drop-btn:hover {
+    background: linear-gradient(135deg, rgba(245,197,66,0.4), rgba(240,154,26,0.35));
+    border-color: #f5c542;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(245,197,66,0.35);
+    transform: scale(1.04);
+  }
+  .drop-btn:active { transform: scale(0.97); }
+
+  .ready-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: .3px;
+    text-shadow: 0 0 14px rgba(74,222,128,0.5);
+  }
+  .reset-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 3px 0;
+    transition: color .15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: .2px;
+  }
+  .reset-btn:hover { color: var(--red); }
+
+  /* ── EMPTY ROUTE STATE ── */
+  .empty-route {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.1);
+    border-radius: var(--radius);
+  }
+  .empty-route .icon { font-size: 32px; margin-bottom: 10px; opacity: .5; }
+
+  /* ── ADD SECTION ── */
+  .add-section {
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-top: 8px;
+    backdrop-filter: blur(12px);
+  }
+  .add-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .add-grid input, .add-grid select {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 10px;
+    width: 100%;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .add-grid input::placeholder { color: var(--muted); }
+  .add-grid input:focus, .add-grid select:focus { border-color: rgba(192,132,252,0.6); }
+  .add-grid select option { background: #1a0b2e; }
+  .btn-add {
+    background: linear-gradient(135deg, rgba(168,85,247,0.35), rgba(219,39,119,0.3));
+    border: 1px solid rgba(192,132,252,0.45);
+    border-radius: 9px;
+    color: #e9d5ff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 18px;
+    transition: all .2s;
+    width: 100%;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .btn-add:hover {
+    background: linear-gradient(135deg, rgba(168,85,247,0.55), rgba(219,39,119,0.5));
+    border-color: rgba(216,180,254,0.6);
+    box-shadow: 0 0 20px rgba(168,85,247,0.3);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    color: #000;
+    border-radius: 10px;
+    padding: 11px 20px;
+    font-weight: 700;
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: all .25s;
+    z-index: 999;
+    pointer-events: none;
+    box-shadow: 0 4px 20px rgba(74,222,128,0.4);
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 520px) {
+    .add-grid { grid-template-columns: 1fr 1fr; }
+    .timer-display { font-size: 20px; }
+    .timer-area { min-width: 110px; padding: 12px 12px; }
+    header h1 { font-size: 15px; }
+    .chest-name { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="chest-icon">📦</span>
+  <div>
+    <h1>TBH Tracker</h1>
+    <div class="subtitle">Baús Azuis · Cooldown 15 min</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="stat-pill">🔵 <span id="stat-ready">0</span>/10 prontos</div>
+</header>
+
+<main>
+
+  <div class="notice">
+    ⚠️ Ferramenta manual — não acessa arquivos do jogo.<br>
+    Clique <strong>+</strong> para adicionar um baú à sua rota. Clique em <strong>DROPOU!</strong> somente quando o baú azul aparecer.
+  </div>
+
+  <div class="settings-row">
+    <label>
+      <span class="toggle-switch">
+        <input type="checkbox" id="snd-toggle" checked>
+        <span class="toggle-track"></span>
+      </span>
+      Som ao liberar
+    </label>
+    <input type="range" id="vol-slider" min="0" max="100" value="40">
+    <span class="vol-val" id="vol-val">40%</span>
+    <button class="btn-test" onclick="testSound()">Testar som</button>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-filter="all">Todas</button>
+    <button class="filter-btn" data-filter="minha-rota">⭐ Minha Rota</button>
+    <button class="filter-btn" data-filter="normal">Normal</button>
+    <button class="filter-btn" data-filter="pesadelo">Pesadelo</button>
+    <button class="filter-btn" data-filter="inferno">Inferno</button>
+    <button class="filter-btn" data-filter="tormento">Tormento</button>
+  </div>
+
+  <div class="section-label" id="list-label">Todos os Baús</div>
+  <div id="chest-list"></div>
+  <div id="empty-route" class="empty-route hidden">
+    <div class="icon">⭐</div>
+    Sua rota está vazia.<br>
+    Clique em <strong>+</strong> em qualquer baú para adicioná-lo aqui.
+  </div>
+
+  <div class="section-label" style="margin-top:28px;">Adicionar baú personalizado</div>
+  <div class="add-section">
+    <div class="add-grid">
+      <input type="text" id="add-name" placeholder="Nome (ex: Fase 2 - 5)" maxlength="30">
+      <input type="number" id="add-lv" placeholder="Nível (ex: 65)" min="1" max="999">
+      <select id="add-diff">
+        <option value="normal">Normal</option>
+        <option value="pesadelo">Pesadelo</option>
+        <option value="inferno">Inferno</option>
+        <option value="tormento">Tormento</option>
+      </select>
+    </div>
+    <button class="btn-add" onclick="addCustomChest()">+ Adicionar à Rota</button>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TIMER_SECONDS = 15 * 60;
+
+const DEFAULT_CHESTS = [
+  { id: 'd1',  name: 'Fase 1 - 1', lv: 1,  diff: 'normal'   },
+  { id: 'd2',  name: 'Fase 1 - 4', lv: 2,  diff: 'normal'   },
+  { id: 'd3',  name: 'Fase 1 - 8', lv: 3,  diff: 'normal'   },
+  { id: 'd4',  name: 'Fase 2 - 3', lv: 15, diff: 'normal'   },
+  { id: 'd5',  name: 'Fase 2 - 8', lv: 20, diff: 'normal'   },
+  { id: 'd6',  name: 'Fase 3 - 8', lv: 30, diff: 'normal'   },
+  { id: 'd7',  name: 'Fase 1 - 9', lv: 40, diff: 'pesadelo' },
+  { id: 'd8',  name: 'Fase 3 - 5', lv: 50, diff: 'pesadelo' },
+  { id: 'd9',  name: 'Fase 2 - 5', lv: 65, diff: 'inferno'  },
+  { id: 'd10', name: 'Fase 1 - 3', lv: 80, diff: 'tormento' },
+];
+
+let chests = [];
+let timers = {};
+let activeFilter = 'all';
+let soundOn = true;
+let volume = 0.4;
+
+// ── STORAGE ────────────────────────────────────────────────
+function save() {
+  const snapshot = chests.map(c => ({
+    id: c.id, name: c.name, lv: c.lv, diff: c.diff,
+    inRoute: c.inRoute || false,
+    dropTime: c.dropTime,
+    custom: c.custom || false
+  }));
+  localStorage.setItem('tbh_chests_v3', JSON.stringify(snapshot));
+  localStorage.setItem('tbh_sound', soundOn ? '1' : '0');
+  localStorage.setItem('tbh_volume', volume.toString());
+}
+
+function load() {
+  const raw = localStorage.getItem('tbh_chests_v3');
+  soundOn = localStorage.getItem('tbh_sound') !== '0';
+  volume = parseFloat(localStorage.getItem('tbh_volume') || '0.4');
+  document.getElementById('snd-toggle').checked = soundOn;
+  document.getElementById('vol-slider').value = Math.round(volume * 100);
+  document.getElementById('vol-val').textContent = Math.round(volume * 100) + '%';
+
+  if (!raw) {
+    chests = DEFAULT_CHESTS.map(c => ({ ...c, inRoute: false, dropTime: null }));
+    return;
+  }
+  const saved = JSON.parse(raw);
+  const defaults = DEFAULT_CHESTS.map(def => {
+    const s = saved.find(x => x.id === def.id);
+    return s
+      ? { ...def, inRoute: s.inRoute || false, dropTime: s.dropTime }
+      : { ...def, inRoute: false, dropTime: null };
+  });
+  const custom = saved.filter(x => x.custom);
+  chests = [...defaults, ...custom];
+}
+
+// ── TIMER ─────────────────────────────────────────────────
+function getRemainingSeconds(chest) {
+  if (!chest.dropTime) return null;
+  return Math.max(0, TIMER_SECONDS - Math.floor((Date.now() - chest.dropTime) / 1000));
+}
+function isReady(chest) {
+  return chest.dropTime ? getRemainingSeconds(chest) === 0 : false;
+}
+function formatTime(secs) {
+  return `${Math.floor(secs/60).toString().padStart(2,'0')}:${(secs%60).toString().padStart(2,'0')}`;
+}
+function startTick(id) {
+  if (timers[id]) return;
+  timers[id] = setInterval(() => {
+    const chest = chests.find(c => c.id === id);
+    if (!chest) return clearInterval(timers[id]);
+    const rem = getRemainingSeconds(chest);
+    updateCardTimer(id, rem);
+    if (rem === 0) {
+      clearInterval(timers[id]);
+      delete timers[id];
+      playSound();
+      showToast(`${chest.name} está pronto! 🔵`);
+      updateStats();
+    }
+  }, 1000);
+}
+function restoreTimers() {
+  chests.forEach(c => { if (c.dropTime && getRemainingSeconds(c) > 0) startTick(c.id); });
+}
+
+// ── SOUND ─────────────────────────────────────────────────
+function playSound() {
+  if (!soundOn) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
+}
+function testSound() { playSound(); }
+
+// ── RENDER ────────────────────────────────────────────────
+function diffLabel(diff) {
+  return { normal: 'Normal', pesadelo: 'Pesadelo', inferno: 'Inferno', tormento: 'Tormento' }[diff] || diff;
+}
+
+function isVisible(chest) {
+  if (activeFilter === 'minha-rota') return chest.inRoute;
+  if (chest.custom) return false; // custom chests only in Minha Rota
+  if (activeFilter === 'all') return true;
+  return chest.diff === activeFilter;
+}
+
+function renderAll() {
+  document.getElementById('chest-list').innerHTML = '';
+  chests.forEach(c => renderCard(c));
+  updateStats();
+  updateEmptyRoute();
+  updateListLabel();
+}
+
+function renderCard(chest) {
+  const list = document.getElementById('chest-list');
+  const rem = getRemainingSeconds(chest);
+  const ready = isReady(chest);
+  const running = chest.dropTime && rem > 0;
+  const hidden = !isVisible(chest);
+
+  const card = document.createElement('div');
+  card.className = `chest-card${ready ? ' ready' : ''}${running ? ' active' : ''}${hidden ? ' hidden' : ''}`;
+  card.dataset.id = chest.id;
+  card.dataset.diff = chest.diff;
+  card.dataset.inRoute = chest.inRoute ? '1' : '0';
+
+  const timerHtml = running
+    ? `<div class="timer-display running" id="tmr-${chest.id}">${formatTime(rem)}</div>
+       <button class="reset-btn" onclick="resetChest('${chest.id}')">↺ resetar</button>`
+    : ready
+    ? `<div class="ready-label">✅ PRONTO!</div>
+       <button class="reset-btn" onclick="resetChest('${chest.id}')">↺ resetar</button>`
+    : `<div class="timer-display" id="tmr-${chest.id}">15:00</div>
+       <button class="drop-btn" onclick="markDrop('${chest.id}')">DROPOU!</button>`;
+
+  const routeBtnHtml = chest.inRoute
+    ? `<button class="route-btn remove" onclick="toggleRoute('${chest.id}')" title="Remover da rota">✕</button>`
+    : `<button class="route-btn add" onclick="toggleRoute('${chest.id}')" title="Adicionar à Minha Rota">+</button>`;
+
+  card.innerHTML = `
+    <div class="card-inner">
+      ${routeBtnHtml}
+      <div class="chest-info">
+        <div class="chest-name">${chest.name}${chest.custom ? ' <span style="font-size:10px;opacity:.45">(custom)</span>' : ''}</div>
+        <div class="chest-meta">
+          <span class="badge badge-diff-${chest.diff}">${diffLabel(chest.diff)}</span>
+          <span class="badge badge-lv">Lv ${chest.lv}</span>
+        </div>
+      </div>
+      <div class="timer-divider"></div>
+      <div class="timer-area">${timerHtml}</div>
+    </div>
+  `;
+  list.appendChild(card);
+}
+
+function updateCardTimer(id, rem) {
+  const el = document.getElementById(`tmr-${id}`);
+  if (el) el.textContent = formatTime(rem);
+  if (rem === 0) {
+    const card = document.querySelector(`.chest-card[data-id="${id}"]`);
+    if (card) {
+      card.classList.remove('active');
+      card.classList.add('ready');
+      const ta = card.querySelector('.timer-area');
+      const chest = chests.find(c => c.id === id);
+      if (ta && chest) {
+        ta.innerHTML = `<div class="ready-label">✅ PRONTO!</div>
+          <button class="reset-btn" onclick="resetChest('${chest.id}')">↺ resetar</button>`;
+      }
+    }
+    updateStats();
+  }
+}
+
+function updateStats() {
+  document.getElementById('stat-ready').textContent = chests.filter(c => isReady(c)).length;
+}
+
+function updateEmptyRoute() {
+  const emptyEl = document.getElementById('empty-route');
+  if (activeFilter !== 'minha-rota') {
+    emptyEl.classList.add('hidden');
+    return;
+  }
+  const hasAny = chests.some(c => c.inRoute);
+  emptyEl.classList.toggle('hidden', hasAny);
+}
+
+function updateListLabel() {
+  const label = document.getElementById('list-label');
+  const labels = {
+    'all': 'Todos os Baús',
+    'minha-rota': '⭐ Minha Rota',
+    'normal': 'Dificuldade — Normal',
+    'pesadelo': 'Dificuldade — Pesadelo',
+    'inferno': 'Dificuldade — Inferno',
+    'tormento': 'Dificuldade — Tormento',
+  };
+  label.textContent = labels[activeFilter] || 'Baús';
+}
+
+// ── ACTIONS ───────────────────────────────────────────────
+function toggleRoute(id) {
+  const c = chests.find(x => x.id === id);
+  if (!c) return;
+  c.inRoute = !c.inRoute;
+  save();
+
+  // Update just the route button on the card
+  const card = document.querySelector(`.chest-card[data-id="${id}"]`);
+  if (card) {
+    card.dataset.inRoute = c.inRoute ? '1' : '0';
+    const oldBtn = card.querySelector('.route-btn');
+    if (oldBtn) {
+      const newBtn = document.createElement('button');
+      if (c.inRoute) {
+        newBtn.className = 'route-btn remove';
+        newBtn.title = 'Remover da rota';
+        newBtn.textContent = '✕';
+      } else {
+        newBtn.className = 'route-btn add';
+        newBtn.title = 'Adicionar à Minha Rota';
+        newBtn.textContent = '+';
+      }
+      newBtn.onclick = () => toggleRoute(id);
+      oldBtn.replaceWith(newBtn);
+    }
+    // If in "minha-rota" filter and we removed it, hide
+    if (activeFilter === 'minha-rota' && !c.inRoute) {
+      card.classList.add('hidden');
+    }
+  }
+  updateEmptyRoute();
+  showToast(c.inRoute ? `${c.name} adicionado à rota ⭐` : `${c.name} removido da rota`);
+}
+
+function markDrop(id) {
+  const c = chests.find(x => x.id === id);
+  if (!c) return;
+  c.dropTime = Date.now();
+  save();
+  const card = document.querySelector(`.chest-card[data-id="${id}"]`);
+  if (card) {
+    card.classList.add('active');
+    const ta = card.querySelector('.timer-area');
+    ta.innerHTML = `<div class="timer-display running" id="tmr-${id}">${formatTime(TIMER_SECONDS)}</div>
+      <button class="reset-btn" onclick="resetChest('${id}')">↺ resetar</button>`;
+  }
+  startTick(id);
+}
+
+function resetChest(id) {
+  const c = chests.find(x => x.id === id);
+  if (!c) return;
+  c.dropTime = null;
+  if (timers[id]) { clearInterval(timers[id]); delete timers[id]; }
+  save();
+  const card = document.querySelector(`.chest-card[data-id="${id}"]`);
+  if (card) {
+    card.classList.remove('active', 'ready');
+    const ta = card.querySelector('.timer-area');
+    ta.innerHTML = `<div class="timer-display" id="tmr-${id}">15:00</div>
+      <button class="drop-btn" onclick="markDrop('${id}')">DROPOU!</button>`;
+  }
+  updateStats();
+}
+
+function addCustomChest() {
+  const name = document.getElementById('add-name').value.trim();
+  const lv   = parseInt(document.getElementById('add-lv').value);
+  const diff = document.getElementById('add-diff').value;
+  if (!name) { showToast('Digite um nome para o baú.', true); return; }
+  if (!lv || lv < 1) { showToast('Digite um nível válido.', true); return; }
+  const id = 'c' + Date.now();
+  const chest = { id, name, lv, diff, inRoute: true, dropTime: null, custom: true };
+  chests.push(chest);
+  save();
+  // If not in a filtered view that hides this, render it
+  if (isVisible(chest)) renderCard(chest);
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-lv').value = '';
+  showToast(`"${name}" adicionado!`);
+  updateStats();
+  updateEmptyRoute();
+}
+
+// ── FILTER ────────────────────────────────────────────────
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  activeFilter = btn.dataset.filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+  document.querySelectorAll('.chest-card').forEach(card => {
+    const id = card.dataset.id;
+    const chest = chests.find(c => c.id === id);
+    if (chest) card.classList.toggle('hidden', !isVisible(chest));
+  });
+  updateEmptyRoute();
+  updateListLabel();
+});
+
+// ── SETTINGS ──────────────────────────────────────────────
+document.getElementById('snd-toggle').addEventListener('change', e => { soundOn = e.target.checked; save(); });
+document.getElementById('vol-slider').addEventListener('input', e => {
+  volume = parseInt(e.target.value) / 100;
+  document.getElementById('vol-val').textContent = e.target.value + '%';
+  save();
+});
+
+// ── TOAST ─────────────────────────────────────────────────
+let toastTimeout;
+function showToast(msg, err = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = err ? 'linear-gradient(135deg,#f87171,#ef4444)' : 'linear-gradient(135deg,#4ade80,#22c55e)';
+  t.style.color = '#000';
+  t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+load();
+renderAll();
+restoreTimers();
+</script>
+</body>
+</html>
